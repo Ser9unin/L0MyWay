@@ -1,6 +1,6 @@
-package order
+package model
 
-type Order struct {
+type Model struct {
 	OrderUID          string   `json:"order_uid" faker:"len=20"`
 	TrackNumber       string   `json:"track_number" faker:"len=20"`
 	Entry             string   `json:"entry" faker:"oneof: WBIL"`

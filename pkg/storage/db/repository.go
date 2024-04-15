@@ -1,4 +1,4 @@
-package repository
+package storage
 
 import (
 	"context"
@@ -24,7 +24,7 @@ func NewDBConnect(ctx context.Context, cfg Config) *sql.DB {
 
 	err = db.PingContext(ctx)
 	if err != nil {
-		log.Fatalf("failed to connect to db: %w", err)
+		log.Fatalf("failed to connect to db: %v", err)
 	}
 	return db
 }

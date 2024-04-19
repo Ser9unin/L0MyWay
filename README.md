@@ -1,16 +1,18 @@
 How to run the service
 Launch nats and postgres containers:
 
-make run
+**make run
 
-make migrate
-
-Launch app:
-
-go run ./cmd
+make migrate**
 
 Launch publisher (in another terminal):
 
-go run ./publisher
+**go run ./publisher**
+
+Launch app:
+
+**go run ./cmd**
+
+
 
 To access API go to 127.0.0.1:8080.

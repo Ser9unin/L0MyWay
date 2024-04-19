@@ -9,13 +9,19 @@ import (
 	_ "github.com/jackc/pgx/stdlib"
 )
 
-type Config struct {
-	username, password, host, port, dbName, sslmode string
+type DBConfig struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	DBName   string
+	SSLMode  string
 }
 
-func NewDBConnect(ctx context.Context, cfg Config) *sql.DB {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		cfg.username, cfg.password, cfg.host, cfg.port, cfg.dbName, cfg.sslmode)
+func NewDBCreateAndConnect(ctx context.Context, cfg DBConfig) (*sql.DB, error) {
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode= %s",
+		cfg.Host, cfg.Port, cfg.Username, cfg.Password, cfg.DBName, cfg.SSLMode)
 
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -26,5 +32,6 @@ func NewDBConnect(ctx context.Context, cfg Config) *sql.DB {
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
 	}
-	return db
+
+	return db, nil
 }

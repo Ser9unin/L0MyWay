@@ -62,13 +62,11 @@ func main() {
 
 	stream, err := jets.Stream(ctx, "Orders")
 	if err != nil {
-		logger.Fatal("unable to get stream: ", zap.Error(err))
+		logger.Warn("unable to get stream: ", zap.Error(err))
 	}
 
 	consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		Name:      "Orders_consumer",
-		Durable:   "Orders_consumer",
-		AckPolicy: jetstream.AckExplicitPolicy,
+		Name: "Orders_consumer",
 	})
 	if err != nil {
 		logger.Fatal("unable to create or update consumer: ", zap.Error(err))
@@ -109,11 +107,9 @@ func main() {
 	}
 
 	logger.Info("running http server")
-	go func() {
-		if err := apiServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("can't start server", zap.Error(err), zap.String("server address", apiServerAddres))
-		}
-	}()
+	if err := apiServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Fatal("can't start server", zap.Error(err), zap.String("server address", apiServerAddres))
+	}
 
 	// graceful shutdown
 	stop := make(chan os.Signal, 1)

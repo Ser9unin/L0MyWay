@@ -1,9 +1,9 @@
 How to run the service
 Launch nats and postgres containers:
 
-**make run
+**make run**
 
-make migrate**
+**make migrate**
 
 Launch publisher (in another terminal):
 

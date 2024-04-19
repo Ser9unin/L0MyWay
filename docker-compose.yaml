@@ -1,0 +1,9 @@
+services:
+  db:
+    image: postgres
+    ports:
+      - 5433:5432
+    environment:
+        POSTGRES_DB: l0myway
+        POSTGRES_USER: dev
+        POSTGRES_PASSWORD: pass

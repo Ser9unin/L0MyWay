@@ -1,0 +1,10 @@
+server:
+    addres: 0.0.0.0:8080
+
+db:
+    username: "dev"
+    password: "pass"
+    host: "localhost"
+    port: "5433"
+    dbname: "l0myway"
+    sslmode: "disable"

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 
 	_ "github.com/jackc/pgx/stdlib"
 )
@@ -25,12 +24,12 @@ func NewDBCreateAndConnect(ctx context.Context, cfg DBConfig) (*sql.DB, error) {
 
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		log.Fatalf("failed to load driver: %v", err)
+		return nil, err
 	}
 
 	err = db.PingContext(ctx)
 	if err != nil {
-		log.Fatalf("failed to connect to db: %v", err)
+		return nil, err
 	}
 
 	return db, nil

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"log"
 
 	model "github.com/Ser9unin/L0MyWay/pkg/model"
 )
@@ -14,12 +13,12 @@ type DBOrder struct {
 	Data     json.RawMessage `json:"description"`
 }
 
-func UnmarshallNatsMsg(msg []byte) DBOrder {
+func UnmarshallNatsMsg(msg []byte) (DBOrder, error) {
 	var dataModel model.Model
 
 	err := json.Unmarshal(msg, &dataModel)
 	if err != nil {
-		log.Println("Unable to unmarshall data", err)
+		return DBOrder{}, err
 	}
 
 	NewOrder := DBOrder{
@@ -27,7 +26,7 @@ func UnmarshallNatsMsg(msg []byte) DBOrder {
 		Data:     msg,
 	}
 
-	return NewOrder
+	return NewOrder, nil
 }
 
 const insertOrder = `-- name: InsertOrder :one
@@ -38,7 +37,6 @@ VALUES ($1, $2)
 func InsertToDB(ctx context.Context, db *sql.DB, order DBOrder) error {
 	_, err := db.ExecContext(ctx, insertOrder, order.OrderUID, order.Data)
 	if err != nil {
-		log.Println("unable to insert into DB", err)
 		return err
 	}
 	return nil

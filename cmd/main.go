@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,7 +18,6 @@ import (
 )
 
 func main() {
-
 	logger, err := zap.NewProduction()
 	if err != nil {
 		os.Exit(1)
@@ -32,7 +30,7 @@ func main() {
 
 	// init config
 	if err := config(); err != nil {
-		log.Fatal("error config initialisation", err)
+		logger.Fatal("error config initialisation: ", zap.Error(err))
 	}
 
 	dbcfg := makeStorageCfg()
@@ -40,26 +38,31 @@ func main() {
 	// open DB
 	db, err := storage.NewDBCreateAndConnect(ctx, dbcfg)
 	if err != nil {
-		log.Fatal("unable to start db", err)
+		logger.Fatal("unable to start db: ", zap.Error(err))
 	}
 	defer db.Close()
 
-	// run consumer
+	// create inmemory cache
+	memcache, err := cache.NewCache(1024, db)
+	if err != nil {
+		logger.Warn("can't create cache: ", zap.Error(err))
+	}
 
+	// run consumer
 	nc, err := nats.Connect(nats.DefaultURL, nats.Name("Orders Consumer"))
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("unable to start nats connect: ", zap.Error(err))
 	}
 	defer nc.Close()
 
 	jets, err := jetstream.New(nc)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("unable to create Jetstream: ", zap.Error(err))
 	}
 
 	stream, err := jets.Stream(ctx, "Orders")
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("unable to get stream: ", zap.Error(err))
 	}
 
 	consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
@@ -68,33 +71,30 @@ func main() {
 		AckPolicy: jetstream.AckExplicitPolicy,
 	})
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	var dbOrder storage.DBOrder
-
-	memcache, err := cache.NewCache(1024, db)
-	if err != nil {
-		log.Println("can't create cache", err)
+		logger.Fatal("unable to create or update consumer: ", zap.Error(err))
 	}
 
 	cctx, err := consumer.Consume(func(msg jetstream.Msg) {
 		fmt.Println("consumer launched")
 		NatsMsgData := msg.Data()
 
-		dbOrder = storage.UnmarshallNatsMsg(NatsMsgData)
-		err = storage.InsertToDB(ctx, db, dbOrder)
-		memcache.Store(dbOrder.OrderUID, dbOrder.Data)
-
+		dbOrder, err := storage.UnmarshallNatsMsg(NatsMsgData)
 		if err != nil {
-			log.Println("can't insert data to db", err)
+			logger.Warn("Unable to unmarshall data", zap.Error(err))
 		}
+
+		err = storage.InsertToDB(ctx, db, dbOrder)
+		if err != nil {
+			logger.Warn("can't insert data to db", zap.Error(err))
+		}
+
+		memcache.Store(dbOrder.OrderUID, dbOrder.Data)
 
 		fmt.Println("Recieved: ", string(dbOrder.OrderUID))
 		msg.Ack()
 	})
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("unable to consume message: ", zap.Error(err))
 	}
 
 	defer cctx.Stop()
@@ -106,8 +106,6 @@ func main() {
 	apiServer := &http.Server{
 		Addr:    apiServerAddres,
 		Handler: router,
-		// ReadTimeout: time.Duration(config.ReadTimeout) * time.Second,
-		// IdleTimeout: time.Duration(config.IdleTimeout) * time.Second,
 	}
 
 	logger.Info("running http server")
@@ -121,14 +119,6 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
-
-	// logger.Info("received an interrupt, closing stan connection and stopping server")
-
-	// timeout, cancel := context.WithTimeout(context.Background(), time.Duration(config.ShutdownTimeout)*time.Second)
-	// defer cancel()
-	// if err := apiServer.Shutdown(timeout); err != nil {
-	// 	logger.Error("can't shutdown http server", zap.Error(err))
-	// }
 }
 
 func config() error {
